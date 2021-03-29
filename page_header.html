@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta charset="UTF-8" />
+<title>Freesia Book Site</title>
+</head>
+<body>
+
+<th:block th:fragment="pageHeader">
+	<script src="http://code.jquery.com/jquery-3.4.1.min.js"></script>
+	<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+	<link rel="stylesheet"
+			href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/themes/smoothness/jquery-ui.css">
+	<script src="/js/util/stringUtil.js" th:src="@{/js/util/stringUtil.js}"></script>
+	<script src="/js/util/validator.js" th:src="@{/js/util/validator.js}"></script>
+	<script src="/js/dialogConfig.js" th:src="@{/js/dialogConfig.js}"></script>
+	<script th:inline="javascript">
+		$(() => {
+		
+			$('#loginError').dialog(dialogConfig.loginError);
+			$('button#login').on('click', login);
+			$('button#logout').on('click', logout);
+		
+		});
+		
+		let login = (event) => {
+			 
+			let jsonString = {
+				'userName': $('input[name=userName]').val(),
+				'password': $('input[name=password]').val()
+			};
+			$.ajax({
+				type: 'POST',
+				url: '/freesia/auth/login',  
+				data: JSON.stringify(jsonString),
+				contentType: 'application/json',
+				datatype: 'json',
+				scriptCharset: 'utf-8'
+			})
+			.then((result) => {
+				let user = JSON.parse(result);
+				if (isEmpty(user)) {
+					$('#hiddenUserName').val('');
+					$('#loginError').dialog('open');
+				} else {
+					let userName = user['userName'];
+					$('#hiddenUserName').val(user['userName']);
+					$('input[name=userName]').val('');
+					$('input[name=password]').val('');
+					$('.welcomeMsg').text(`ようこそ！ ${userName} さん`);
+					if (isEmpty($('button#login').prop('class'))) {
+						$('button#login').addClass('hidden');
+						$('button#logout').removeClass('hidden');
+						$('#mypageMenu').removeClass('hidden');
+					}
+				}
+					
+			}, () => {
+				alert('Error: ajax connection failed.');		
+			});
+		};
+		
+		let logout = (event) => {
+			 
+			$.ajax({
+				type: 'POST',
+				url: '/freesia/auth/logout',  
+				datatype: 'json',
+				scriptCharset: 'utf-8'
+			})
+			.then((result) => {
+					$('input[name=hiddenUserName]').val('');
+					$('input[name=userName]').val('');
+					$('input[name=password]').val('');
+					if(!alert("ログアウトしました。")){
+						window.location.href = '/freesia/';
+					}
+			}, () => {
+				alert('Error: ajax connection failed.');	
+			});
+		};
+	</script>
+	<div class="headerTop">
+		<h1 class="logo"><a href="/freesia/">Freesia</a></h1>
+		<span class="signup">
+			<a href="/freesia/user/" th:href="@{/freesia/user/}">
+			新規ユーザ登録はこちら
+			</a>
+		</span>
+
+		<span class="welcomeMsg"
+			th:text="'ようこそ！ '+${loginSession.getUserName() != null ? loginSession.getUserName() : 'ゲスト'}+' さん'">
+		</span>
+		<input type="hidden" name="hiddenUserName" id="hiddenUserName" th:value="${loginSession.getUserName()}" />
+	</div>
+	 
+	<nav>
+		<div class="loginArea">
+			<input type="text" name="userName" />
+			<input type="password" name="password" />
+			
+			<button id="login" th:class="${loginSession == null || loginSession.getUserName() == null ? '' : 'hidden'}">ログイン</button>
+			<button id="logout" th:class="${loginSession == null || loginSession.getUserName() == null ? 'hidden' : ''}">ログアウト</button>
+			
+		</div>
+		<ul class="menu">
+			<li><a href="/freesia/cart/">カート</a></li>
+			<li id="mypageMenu" th:class="${loginSession == null || loginSession.getUserName() == null ? 'hidden' : ''}"><a href="/freesia/mypage/">マイページ</a></li>
+		</ul>
+	</nav>
+		<!-- Modal Dialog (ログインエラー) -->
+	<div th:insert="fragments/dialog_login_error::dialogLoginError"></div>
+	
+</th:block>
+
+
+</body>
+</html>
